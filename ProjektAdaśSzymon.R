@@ -1,7 +1,7 @@
 library(tseries)
 
 #zadanie 1
-dane_all <- read.csv2(file="/Users/szymon/Downloads/projekt-teoria-ryzyka-master 2/data.csv")
+dane_all <- read.csv2(file="data.csv")
 dane_all[,1] <- as.Date(dane_all[,1],"%d.%m.%Y")   #wczytanie pierwszej kolumny jako daty
 dane_all[,-1] <- lapply(dane_all[,-1], function(x) as.numeric(as.character(x))) #wczytanie danych jako liczb
 dates = as.Date(c("2017-01-01","2017-02-01","2017-03-01","2017-04-01","2017-05-01","2017-06-01","2017-07-01","2017-08-01","2017-09-01","2017-10-01","2017-11-01","2017-12-01",
@@ -14,20 +14,17 @@ return_all <- dane_all[dates[-1],-1]/dane_all[dates[-length(dates)],-1] -1 # mie
 mu_all <- apply(return_all[,-1],2,mean)  # srednie miesieczne stopy zwrotu
 cov_all <- cov(return_all)     # macierz kowariancji z calego okresu dla miesiecznych stop zwrotu
 
-
 #zadanie 2
 return <- c()
 for(i in 1:(dim(return_all)[1]-11)){
   return[i] <- mean(apply(return_all[i:(i+11),],2,mean))
 }    # wektor srednich miesiecznych stop zwrotu z 1 roku wstecz dla wszystkich spolek
-portfelX<- c(10000)    # kapital poczatkowy
-wagi_all <- matrix(c(0),ncol=8,nrow=24)
-colnames(wagi_all) <- colnames(return_all)
+portfelX<- 10000   # kapital poczatkowy
+wagi_all <- matrix(0,ncol=8,nrow=24,dimnames = list(NULL,colnames(return_all)))
 for(i in 1:(length(dates)-13)){
   wagi_all[i,] <- portfolio.optim(as.matrix(return_all[i:(i+11),]),return[i],shorts = TRUE)$pw
   portfelX[i+1]<- portfelX[i]*sum(wagi_all[i,]*(1+return_all[12+i,])) 
-}
-
+} # wyliczamy wagi i zysk naszego portfela dla kolejnych okresow
 
 #rownowaznie mozna liczyc wagi bez portfolio.optim w ten sposob
 markowitz <- function(return){
@@ -51,7 +48,20 @@ for(i in 1:24){
 }
 weights = matrix(weights, ncol = dim(return_all)[2], dimnames = list(as.character(dates[13:36]),colnames(return_all)), byrow = T)
 
+#Zad3
+portfelY <- 10000   # poczatkowa wartosc portfelaY
+wagiY <- rep(1/8,8)  # wagi portfela Y
+for(i in 1:(length(dates)-13)){
+  portfelY[i+1]<- portfelY[i]*sum(wagiY*(1+return_all[12+i,])) 
+}   # wyliczamy zysk portfela 1/8
+portfel_ret_all <- matrix(c(portfelX[-1]/portfelX[-length(portfelY)]-1,portfelY[-1]/portfelY[-length(portfelY)]-1),ncol=2,dimnames=list(NULL,c("portfelX","portfelY")))
+# powyzej mamy stopy zwrotu z portfela X i Y
+portfel_mu_all <- apply(portfel_ret_all,2,mean)    # srednie stopy zwrotu z obydwu portfeli
+portfel_var_all <- apply(portfel_ret_all,2,var)    # wariancje z miesiecznych stóp zwrotu z obydwu portfeli
 
+
+# portfel brzegowy wszystko w jedna spólke?
 # co z miesiecznymi stopami zwrotu (ostatnia)
 # skroty na gieldzie 2-3-4 literowe
 # portfolio.optim ok, czy liczyc??? na piechote?
+# srednia z 12 miesiecy z 8 spólek?
