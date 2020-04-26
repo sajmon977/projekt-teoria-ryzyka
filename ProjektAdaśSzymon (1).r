@@ -39,11 +39,12 @@ return_all <- a             #miesieczne stopy zwrotu ze wszystkich akcji
 
 #Szymon
 return <- sapply(12:36,function(x) mean(rowMeans(return_all)[(x-11):x]))# wektor srednich miesiecznych stop zwrotu z 1 roku wstecz dla wszystkich spolek
+return <- return_all[1:12,]
 
-function(return){
+markowitz <- function(return){
   m = mean(rowMeans(return))
-  ones = matrix(rep(1,dim(return)[1]))
-  mu = mean(rowMeans(return))
+  ones = matrix(rep(1,dim(return)[2]))
+  mu = colMeans(return)
   sigma = solve(cov(return))
   
   A = (t(mu) %*% sigma %*% ones)[1,1]
@@ -52,5 +53,7 @@ function(return){
   Dev = sqrt((C*return^2-2*A*return+B)/(B*C-A^2))
   gamma=(C*m-A)/(B*C-A^2)
   delta=(B-A*m)/(B*C-A^2)
-  return(gamma %*% mu %*% O+delta%*%w1%*%O)
+  return((gamma * mu  + delta * t(ones)) %*% sigma)
 }
+matrix(c(markowitz(return_all[1:12,]),markowitz(return_all[2:13,])),nrow = 2)
+weights <- matrix(sapply(12:36,markowitz(return_all[(x-11):x,])),ncol = 8)
