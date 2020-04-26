@@ -16,20 +16,17 @@ return <- c()
 for(i in 1:(dim(return_all)[1]-11)){
   return[i] <- mean(apply(return_all[i:(i+11),],2,mean))
 }    # wektor srednich miesiecznych stop zwrotu z 1 roku wstecz dla wszystkich spolek
-portfelX<- c()
-portfelX[1] <- 10000   # kapital poczatkowy
+portfelX<- c(10000)    # kapital poczatkowy
 wagi_all <- matrix(c(0),ncol=8,nrow=24)
 colnames(wagi_all) <- colnames(return_all)
 for(i in 1:(length(dates)-13)){
   wagi_all[i,] <- portfolio.optim(as.matrix(return_all[i:(i+11),]),return[i],shorts = TRUE)$pw
   portfelX[i+1]<- portfelX[i]*sum(wagi_all[i,]*(1+return_all[12+i,])) 
-}   # dlaczego ostatnia obserwacja jest NA? jeszcze nw 
+}
+
+
 portfelX
 wagi_all
-dim(dane_all[mies[-length(mies)],-1])
-
-
-return_all <- a             #miesieczne stopy zwrotu ze wszystkich akcji
 
 
 
