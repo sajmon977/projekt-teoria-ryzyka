@@ -1,6 +1,6 @@
 library(tseries)
 
-dane_all <- read.csv2(file="/Users/szymon/Downloads/projekt-teoria-ryzyka-master 2/data.csv")
+dane_all <- read.csv2(file="data.csv")
 dane_all[,1] <- as.Date(dane_all[,1],"%d.%m.%Y")   #wczytanie pierwszej kolumny jako daty
 dane_all[,-1] <- lapply(dane_all[,-1], function(x) as.numeric(as.character(x))) #wczytanie danych jako liczb
 dates = as.Date(c("2017-01-01","2017-02-01","2017-03-01","2017-04-01","2017-05-01","2017-06-01","2017-07-01","2017-08-01","2017-09-01","2017-10-01","2017-11-01","2017-12-01",
@@ -12,16 +12,20 @@ dates[37]<- 754 # poniewaz nie mamy obserwacji ze stycznia 2020, bierzemy cene z
 return_all <- dane_all[dates[-1],-1]/dane_all[dates[-length(dates)],-1] -1 # miesieczne proste stopy zwrotu dla poszczegolnch firm
 mu_all <- apply(return_all[,-1],2,mean)  # srednie miesieczne stopy zwrotu
 cov_all <- cov(return_all)     # macierz kowariancji z calego okresu dla miesiecznych stop zwrotu
+return <- c()
 for(i in 1:(dim(return_all)[1]-11)){
   return[i] <- mean(apply(return_all[i:(i+11),],2,mean))
 }    # wektor srednich miesiecznych stop zwrotu z 1 roku wstecz dla wszystkich spolek
 portfelX<- c()
 portfelX[1] <- 10000   # kapital poczatkowy
-for(i in 1:(length(dates)-12)){
-  a <- portfolio.optim(as.matrix(return_all[i:(i+11),]),return[i],shorts = TRUE)
-  portfelX[i+1]<- portfelX[i]*sum(a$pw*(1+return_all[12+i,])) 
+wagi_all <- matrix(c(0),ncol=8,nrow=24)
+colnames(wagi_all) <- colnames(return_all)
+for(i in 1:(length(dates)-13)){
+  wagi_all[i,] <- portfolio.optim(as.matrix(return_all[i:(i+11),]),return[i],shorts = TRUE)$pw
+  portfelX[i+1]<- portfelX[i]*sum(wagi_all[i,]*(1+return_all[12+i,])) 
 }   # dlaczego ostatnia obserwacja jest NA? jeszcze nw 
 portfelX
+wagi_all
 dim(dane_all[mies[-length(mies)],-1])
 
 
