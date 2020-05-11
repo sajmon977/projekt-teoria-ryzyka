@@ -67,14 +67,7 @@ colnames(USbond) <- c("data","zamkniecie")
 USbond <- USbond[nrow(USbond):1,]    # notowana jest rentownosc obligacji. nie ich cena. Szczególy w pdf.
 databond <- sapply(datess, function(x) sum(USbond[,1] < x) + 1)  # powtarzamy podzielenie na miesiace wedlug daty
 databond[37] <- 919  # problem taki sam jak z notowaniami
-ildni <- as.numeric(USbond[-1,1]-USbond[-dim(USbond)[1],1]) # róznica w dniach miedzy poszczególnymi obserwacjami dla obligacji
-ildni(lenght(ildni)+1) <- 1  # ostatnia inwestycja jest 31 grudnia i ay 1 dzien do stycznia
-opdz <- (1+USbond[-dim(USbond)[1],2]/(100*365))^ildni    # prosta dzienna (jezeli jest weekend to zakladamy, ze inwestujemy przez 3 dni) stopa zwrotu dla poszczgólnych obserwacji 
-opdz[length(opdz)+1] <- opdz[length(opdz)] # poniewaz nie mamy rentownosci obligacji w styczniu zakladamy, ze jest taka sama jak 31 grudnia (te pieniadze przez beda pracowaly w tym czasie)
-stopa_all <- c()
-for(i in 1:(length(databond)-1)){
-  stopa_all[i] <- prod(opdz[databond[i]:databond[i+1]])-1
-}
+stopa_all <- (USbond[databond,2]*(1/12))/100 # rentownosc obligacji 1 dnia kazdego miesiaca, w skali miesiecznej, dzielimy przez 100 poniewaz jest wynik procentowy
 
 sp <- read.csv2(file="S&P500.csv", sep = ",")
 sp <- sp[,c(1,5)]
@@ -82,19 +75,53 @@ sp[,1] <- as.Date(sp[,1])
 sp[,2] <- as.numeric(as.character(sp[,2]))
 spdsz <- sp[-1,2]/sp[-dim(sp)[1],2] -1 
 gielda_all <- sp[dates[-1],2]/sp[dates[-length(dates)],2] -1  #miesieczne stopy zwrotu z indeksu S&P 500
-stopyzwrotu <- matrix(c(portfel_ret_all,gielda_all[13:length(gielda_all)],stopa_all[13:length(stopa_all)]),ncol=4,dimnames = list(NULL,c("portfelX","portfelY","gielda_all","stopa_all")))
-#dostajemy macierz z miesiecznymi stopami zwrotu z porfela x,Y,S&P500 i inwestujac w obligacje dzisiecioletnie w USA
-spsd <- c()
-length(spdsz)
-dates[length(dates)] <- 753 # gdy bierzemy stopy zwrotu bedzie ich o 1 mniej niz obserwacji
-for(i in 1:(length(dates)-1)){
-  spsd[i] <- sd(spdsz[dates[i]:dates[i+1]])
-} # odchylenie standardowe rynkowej stopy zwrotu (S&P500) dla poszczególnych miesiecy
-sharp <- (stopyzwrotu[,1:3]-stopyzwrotu[,4])/spsd[13:length(spsd)]  #sharpe ratio dla poszczególnych portfeli; x,Y, s&p500
-#sharpe(stopyzwrotu[,3],stopyzwrotu[,4],scale = sqrt(30)) raczej zle, ale nw dlaczego
+stopyzwrotu <- matrix(c(portfel_ret_all,gielda_all[13:length(gielda_all)],stopa_all[13:(length(stopa_all)-1)]),ncol=4,dimnames = list(NULL,c("portfelX","portfelY","gielda_all","stopa_all")))
+#dostajemy macierz z miesiecznymi stopami zwrotu z porfela x,Y,S&P500 i inwestujac w obligacje dzisiecioletnie w USA, tutaj bierzemy poczatek kazdej miesiecznej inwestycji
+odchs <- c()
+for(i in 1:24){
+  odchs[i] <-sd(gielda_all[i:(11+i)])  
+}   #policzylismy odchylenia z miesiecznych stóp zwrotu dla poszczególnych okresów, w których inwestujemy.
+
+sharpe_all <- matrix(ncol=3,nrow = 24,dimnames = list(NULL,c("portfelX","portfelY","S&P500")))
+for(i in 1:3){
+  sharpe_all[,i] <- (stopyzwrotu[,i]-stopyzwrotu[,4])/odchs  
+} # policzylismy sharpe_ratio dla portfeli X,Y i S&P500
+beta_allX <- c()
+beta_allY <- c()
+alfa_allX <- c()
+alfa_allY <- c()
+for(i in 1:12){
+  CAPM <- lm((stopyzwrotu[i:(11+i),1]-stopyzwrotu[i:(11+i),4])~(stopyzwrotu[i:(11+i),3]-stopyzwrotu[i:(11+i),4]))
+  CAPM2 <- lm((stopyzwrotu[i:(11+i),2]-stopyzwrotu[i:(11+i),4])~(stopyzwrotu[i:(11+i),3]-stopyzwrotu[i:(11+i),4]))
+  alfa_allX[i] <- CAPM$coefficients[1]
+  beta_allX[i] <- CAPM$coefficients[2]
+  alfa_allY[i] <- CAPM2$coefficients[1]
+  beta_allY[i] <- CAPM2$coefficients[2]
+}
+alfa_all <- matrix(c(alfa_allX,alfa_allY),ncol=2,dimnames = list(NULL,c("alfa_allX","alfa_allY")))
+beta_all <- matrix(c(beta_allX,beta_allY),ncol=2,dimnames = list(NULL,c("beta_allX","beta_allY")))
+
+# to jest na razie zle we wtorek sie dowiem jak to poprawic
+
+ 
+#z
+
+
+
+# dokladnie sharpe_ratio po prostu stopa zwrotu miesieczna?
+# model CAPM mamy 24 stopy zwrotu czyli mozemy tylko dla ostatniego roku sprawdzac jak dziala CAPM?
+
+
+
+
+
+
+
+
 
 #RYNKOWA STOPA ZWROTU S&P500?
 #MIESIECZNA STOPA ZWROTU Z OBLIGACJI, PRZEMNOZENIE RAZY LICZBA DNI?
+#ODCHYLENIE MIESIAC OBSERWACJI?
 
 # portfel brzegowy wszystko w jedna spólke?
 # co z miesiecznymi stopami zwrotu (ostatnia)
