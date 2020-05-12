@@ -45,7 +45,7 @@ markowitz <- function(return){ #funkcja wyliczajaca wagi dla zadanej macierzy st
   return((gamma * mu  + delta * t(ones)) %*% sigma)
 }
 #a nastepnie tworzymy macierz wag dla naszych danych
-weights = matrix(t(sapply(1:(dim(return_all)[1]-11), function(x) markowitz(return_all[x:(x+11),]))), ncol = dim(return_all)[2], dimnames = list(as.character(dane_all[dates[13:37],1]),colnames(return_all))) 
+weights = matrix(t(sapply(1:(dim(return_all)[1]-11), function(x) markowitz(return_all[x:(x+11),]))), ncol = 8, dimnames = list(as.character(dane_all[dates[13:37],1]),colnames(return_all))) 
 
 
 portfelX <- 10000 #wyliczamy zysk z inwestycji z naszego portfela
@@ -58,15 +58,35 @@ plot(dane_all[dates[13:37],1],portfelX, type='l', col='black', xlab = 'daty', yl
 
 
 #Zad3
-portfelY <- 10000   # poczatkowa wartosc portfelaY
-wagiY <- rep(1/8,8)  # wagi portfela Y
+portfelY = 10000 #wartosc portfelaY
+portfeleBrzegowe = matrix(rep(10000, 8), ncol = 8, dimnames = list(1,colnames(return_all)))
+#wartosci portfeli brzegowych czyli inwestycji tylko w jedna spolke
+
 for(i in 1:(length(dates)-13)){
-  portfelY[i+1]<- portfelY[i]*sum(wagiY*(1+return_all[12+i,])) 
-}   # wyliczamy zysk portfela 1/8
+  portfelY[i+1]<- portfelY[i]* rep(1/8, 8) %*% t(1 + return_all[12 + i,])
+  portfeleBrzegowe = rbind(portfeleBrzegowe, matrix(portfeleBrzegowe[dim(portfeleBrzegowe)[1],]*(1+return_all[12+i,]), ncol = 8, dimnames = list(as.character(i+1),colnames(return_all))))
+} #wyliczamy zysk portfela 1/8 oraz portfele brzegowe
+
+plot(dane_all[dates[13:37],1],portfelX, type='l', col='red', xlab = 'czas', ylab = 'wartosc portfela', lwd=2)
+lines(dane_all[dates[13:37],1],portfelY, col='black', lwd=2)
+for(i in 1:dim(portfeleBrzegowe)[2]){
+  lines(dane_all[dates[13:37],1],portfeleBrzegowe[,i], col=rainbow(dim(portfeleBrzegowe)[2])[i])
+}
+
+
+
+
+
+
+
+
+
 portfel_ret_all <- matrix(c(portfelX[-1]/portfelX[-length(portfelY)]-1,portfelY[-1]/portfelY[-length(portfelY)]-1),ncol=2,dimnames=list(NULL,c("portfelX","portfelY")))
 # powyzej mamy stopy zwrotu z portfela X i Y
 portfel_mu_all <- apply(portfel_ret_all,2,mean)    # srednie stopy zwrotu z obydwu portfeli
 portfel_var_all <- apply(portfel_ret_all,2,var)    # wariancje z miesiecznych st?p zwrotu z obydwu portfeli
+
+
 
 #zad4
 USbond <- read.csv2(file="USbond.csv",sep = ";")
