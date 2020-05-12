@@ -67,12 +67,14 @@ for(i in 1:(length(dates)-13)){
   portfeleBrzegowe = rbind(portfeleBrzegowe, matrix(portfeleBrzegowe[dim(portfeleBrzegowe)[1],]*(1+return_all[12+i,]), ncol = 8, dimnames = list(as.character(i+1),colnames(return_all))))
 } #wyliczamy zysk portfela 1/8 oraz portfele brzegowe
 
-plot(dane_all[dates[13:37],1],portfelX, type='l', col='red', xlab = 'czas', ylab = 'wartosc portfela', lwd=2)
-lines(dane_all[dates[13:37],1],portfelY, col='black', lwd=2)
+plot(dane_all[dates[13:37],1],portfelX, type='l', col=1,ylim = c(7700,20000), xlab = 'czas', ylab = 'wartosc portfela', lwd=2)
+lines(dane_all[dates[13:37],1],portfelY, col=2, lwd=2)
 for(i in 1:dim(portfeleBrzegowe)[2]){
-  lines(dane_all[dates[13:37],1],portfeleBrzegowe[,i], col=rainbow(dim(portfeleBrzegowe)[2])[i])
+  lines(dane_all[dates[13:37],1],portfeleBrzegowe[,i], col=(2+i))
 }
-
+legend(dane_all[dates[12]+1,1],20500,legend=c("porfelX", "porfelY",colnames(dane_all)[2:9]),
+       col=c(1:10), lty=1, cex=0.46)
+a
 
 
 
@@ -154,11 +156,11 @@ for(i in 1:24){
 }
 Drowdawn <- apply(matrix(c(DrowdawnsX,DrowdawnsY,DrowdawnsSP500,Drowdawnsbonds),ncol=4),2,max)
 # wykres zysków portfela X i Y, S&P500 i obligacji
-plot(portfelX,type="l",col=1,xlab = "kapital w kolejnych miesiacach inwestycji",ylab = "wartosc portfela")
-lines(portfelY,col=2)
-lines(portfelSP500,col=3)
-lines(portfelbonds,col=4)
-legend(1,15500,legend=c("porfelX", "porfelY","portfelSP500","portfelbonds"),
+plot(dane_all[dates[13:37],1],portfelX,type="l",col=1,xlab = "czas",ylab = "wartosc portfela")
+lines(dane_all[dates[13:37],1],portfelY,col=2)
+lines(dane_all[dates[13:37],1],portfelSP500,col=3)
+lines(dane_all[dates[13:37],1],portfelbonds,col=4)
+legend(dane_all[dates[12]+1,1],15940,legend=c("porfelX", "porfelY","portfelSP500","portfelbonds"),
        col=c(1,2,3,4), lty=1, cex=0.7)
 a
 
