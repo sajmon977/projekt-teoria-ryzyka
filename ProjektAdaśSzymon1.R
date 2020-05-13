@@ -31,7 +31,7 @@ for(i in 1:length(return)){
 } #wyliczamy wagi
 
 #rownowaznie wagi mozna policzyc bez portfolio.optim w ten sposob
-markowitz <- function(return){ #funkcja wyliczajaca wagi dla zadanej macierzy stop zwrotu return
+markowitz <- function(return, return_mABC){ #funkcja wyliczajaca wagi dla zadanej macierzy stop zwrotu return
   m = mean(rowMeans(return))
   ones = matrix(rep(1,dim(return)[2]))
   mu = colMeans(return)
@@ -42,18 +42,22 @@ markowitz <- function(return){ #funkcja wyliczajaca wagi dla zadanej macierzy st
   C = (t(ones) %*% sigma %*% ones)[1,1]
   gamma=(C*m-A)/(B*C-A^2)
   delta=(B-A*m)/(B*C-A^2)
-  return((gamma * mu  + delta * t(ones)) %*% sigma)
+  
+  if(return_mABC){
+    return(c(m, A, B, C))
+  }else{
+    return((gamma * mu  + delta * t(ones)) %*% sigma)
+  }
 }
+
 #a nastepnie tworzymy macierz wag dla naszych danych
-weights = matrix(t(sapply(1:(dim(return_all)[1]-11), function(x) markowitz(return_all[x:(x+11),]))), ncol = 8, dimnames = list(as.character(dane_all[dates[13:37],1]),colnames(return_all))) 
+weights = matrix(t(sapply(1:(dim(return_all)[1]-11), function(x) markowitz(return_all[x:(x+11),],FALSE))), ncol = 8, dimnames = list(as.character(dane_all[dates[13:37],1]),colnames(return_all))) 
 
 
 portfelX <- 10000 #wyliczamy zysk z inwestycji z naszego portfela
 for(i in 1:(length(dates)-13)){
   portfelX[i+1]<- portfelX[i]*sum(wagi_all[i,]*(1+return_all[12+i,]))
 }
-
-plot(dane_all[dates[13:37],1],portfelX, type='l', col='black', xlab = 'daty', ylab = 'wartosc portfela', lwd=2)
 
 
 
@@ -74,7 +78,7 @@ for(i in 1:dim(portfeleBrzegowe)[2]){
 }
 legend(dane_all[dim(dane_all)[1],1]-50,22000,legend=c("porfelX", "porfelY",colnames(dane_all)[2:9]),col=rainbow(10), lwd = c(3,3,rep(1,8)), lty=1, y.intersp = 0.3, x.intersp = 0.3, cex = 2, bty = 'n')
 
-
+portfeleBrzegowe[5:25,2]
 portfel_ret_all = matrix(c(portfelX[-1]/portfelX[-length(portfelY)]-1,portfelY[-1]/portfelY[-length(portfelY)]-1),ncol=2,dimnames=list(NULL,c("portfelX","portfelY")))
 portfeleBrzegowe_ret_all = portfeleBrzegowe[-1,]/portfeleBrzegowe[-dim(portfeleBrzegowe)[1],]-1 #obliczamy stopy zwrotu z portfela X i Y oraz portfeli brzegowych
 portfel_mu_all = apply(portfel_ret_all,2,mean)
@@ -82,8 +86,20 @@ portfeleBrzegowe_mu_all = apply(portfeleBrzegowe_ret_all,2,mean) #srednie stopy 
 portfel_var_all = apply(portfel_ret_all,2,var)
 portfeleBrzegowe_var_all = apply(portfeleBrzegowe_ret_all,2,var) #wariancje ze stop zwrotu z portfeli
 
-plot(c(portfel_var_all,portfeleBrzegowe_var_all), c(portfel_mu_all, portfeleBrzegowe_mu_all), xlim=c(0.001,0.021), pch=c(19,19,rep(1,8)), col = rainbow(10), xlab = 'wariancja', ylab = 'zwrot', cex.lab = 1.5, lwd=14)
-legend(0.017, 0.028, legend=c("porfelX", "porfelY",colnames(dane_all)[2:9]), col=rainbow(10), pt.lwd = 4, pch=c(19,19,rep(1,8)), y.intersp = 0.2, x.intersp = 0.3, cex = 2, bty = 'n')
+plot(c(portfel_var_all,portfeleBrzegowe_var_all), c(portfel_mu_all, portfeleBrzegowe_mu_all), xlim=c(0.001,0.021), pch=19, col = rainbow(10), xlab = 'wariancja', ylab = 'sredni zwrot', cex.lab = 1.5, lwd=c(14,14,rep(8,8)))
+legend(0.017, 0.028, legend=c("porfelX", "porfelY", colnames(dane_all)[2:9]), col=rainbow(10), pt.lwd = c(6,6,rep(0.8,8)), pch=19, y.intersp = 0.2, x.intersp = 0.3, cex = 2, bty = 'n')
+
+xtable(as.data.frame(t(weights[1,]),row.names = c("waga")), type = "latex")
+
+returns = as.matrix(return_all[1:12,]) %*% matrix(c(weights[1,],rep(1/8,8),diag(8)), dimnames = list(NULL,c("portfelX", "portfelY", colnames(return_all))) ,ncol=10)
+param = markowitz(return_all[1:12,],TRUE)
+Mean = seq(0,1.5*max(colMeans(return_all[1:12,])),by=1.5*max(colMeans(return_all[1:12,]))/256)
+Dev = (param[4]*Mean^2-2*param[2]*Mean+param[3])/(param[3]*param[4]-param[2]^2)
+
+plot(Dev,Mean, type="l", xlab = 'wariancja', ylab = 'sredni zwrot', xlim = c(0.0004, 0.006), lwd = 4)
+points(apply(returns,2,var), apply(returns,2,mean), pch=19, col = rainbow(10), lwd = c(14,14,rep(8,8)))
+legend(0.0037, 0.06, legend=c("krzywa efektywnosci","porfelX", "porfelY",colnames(dane_all)[2:9]), col=c(1,rainbow(10)), lwd = 4, seg.len = 0.5, pt.lwd = c(0,6,6,rep(0.8,8)), lty = c(1,rep(NA,10)), pch=c(NA,rep(19,10)), y.intersp = 0.2, x.intersp = 0.3, cex = 2, bty = 'n')
+
 
 
 #zad4
