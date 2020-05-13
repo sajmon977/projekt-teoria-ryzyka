@@ -5,10 +5,10 @@ library(xtable) #biblioteka potrzebna do uzycia funkcji xtable (generowanie tabe
 dane_all <- read.csv2(file="data.csv") #wczytanie danych z pliku
 dane_all[,1] <- as.Date(dane_all[,1],"%d.%m.%Y") #zmiana formatu pierwszej kolumny jako daty
 dane_all[,-1] = lapply(dane_all[,-1], function(x) as.numeric(as.character(x))) #zmiana formatu pozostalych kolumn jako liczb
-dates = as.Date(c("2017-01-01","2017-02-01","2017-03-01","2017-04-01","2017-05-01","2017-06-01","2017-07-01","2017-08-01","2017-09-01","2017-10-01","2017-11-01","2017-12-01",
+datess = as.Date(c("2017-01-01","2017-02-01","2017-03-01","2017-04-01","2017-05-01","2017-06-01","2017-07-01","2017-08-01","2017-09-01","2017-10-01","2017-11-01","2017-12-01",
                   "2018-01-01","2018-02-01","2018-03-01","2018-04-01","2018-05-01","2018-06-01","2018-07-01","2018-08-01","2018-09-01","2018-10-01","2018-11-01","2018-12-01",
                   "2019-01-01","2019-02-01","2019-03-01","2019-04-01","2019-05-01","2019-06-01","2019-07-01","2019-08-01","2019-09-01","2019-10-01","2019-11-01","2019-12-01","2020-01-01"))
-dates = c(sapply(dates[-length(dates)], function(x) sum(dane_all[,1] < x) + 1),754)
+dates = c(sapply(datess[-length(datess)], function(x) sum(dane_all[,1] < x) + 1),754)
 #numery wierszy z pierwszym dniem kazdego miesiaca z wyjatkiem ostatniej obesrwacji gdzie numer wiersza jest z ostatniego dnia grudnia, poniewaz nie mamy cene zamkniecia ze stycznia 2020
 
 return_all = dane_all[dates[-1],-1]/dane_all[dates[-length(dates)],-1] -1 #miesieczne proste stopy zwrotu dla poszczegolnch firm
@@ -78,7 +78,6 @@ for(i in 1:dim(portfeleBrzegowe)[2]){
 }
 legend(dane_all[dim(dane_all)[1],1]-50,22000,legend=c("porfelX", "porfelY",colnames(dane_all)[2:9]),col=rainbow(10), lwd = c(3,3,rep(1,8)), lty=1, y.intersp = 0.3, x.intersp = 0.3, cex = 2, bty = 'n')
 
-portfeleBrzegowe[5:25,2]
 portfel_ret_all = matrix(c(portfelX[-1]/portfelX[-length(portfelY)]-1,portfelY[-1]/portfelY[-length(portfelY)]-1),ncol=2,dimnames=list(NULL,c("portfelX","portfelY")))
 portfeleBrzegowe_ret_all = portfeleBrzegowe[-1,]/portfeleBrzegowe[-dim(portfeleBrzegowe)[1],]-1 #obliczamy stopy zwrotu z portfela X i Y oraz portfeli brzegowych
 portfel_mu_all = apply(portfel_ret_all,2,mean)
@@ -124,9 +123,18 @@ stopyzwrotu <- matrix(c(portfel_ret_all,gielda_all[13:length(gielda_all)],stopa_
 odchs <-sd(gielda_all[13:36])  
 #policzylismy odchylenia z miesiecznych rynkowych st?p zwrotu dla okresu, w kt?rych inwestujemy.
 sharpe_all <- matrix(ncol=3,nrow = 1,dimnames = list(NULL,c("portfelX","portfelY","S&P500")))
+Sharpe_brzeg <- matrix(ncol=8,nrow = 1,dimnames = list(NULL,colnames(portfeleBrzegowe_ret_all)))
 for(i in 1:3){
   sharpe_all[,i] <- (mean(stopyzwrotu[,i])-mean(stopyzwrotu[,4]))/odchs  
 } # policzylismy sharpe_ratio dla portfeli X,Y i S&P500
+for(i in 1:8){
+  Sharpe_brzeg[,i] <- (mean(portfeleBrzegowe_ret_all[,i])-mean(stopyzwrotu[,4]))/odchs
+} # Sharpe_ratio dla portfeli brzegowych
+sharpe<- matrix(nrow=2,ncol=11)
+sharpe[2,] <- c(sharpe_all,Sharpe_brzeg)
+sharpe[1,] <- c(colnames(sharpe_all),colnames(Sharpe_brzeg))
+xtable(sharpe)
+
 beta_allX <- c()
 beta_allY <- c()
 alfa_allX <- c()
@@ -170,24 +178,32 @@ for(i in 2:25){
   portfelSP500[i] <-  portfelSP500[(i-1)]*(1+stopyzwrotu[(i-1),3])
   portfelbonds[i] <-  portfelbonds[(i-1)]*(1+stopyzwrotu[(i-1),4])
 } # policzylismy wartosc portfela inwestujac 10 000$ w S&P500 i obligacje
-DrowdawnsX <- c()
-DrowdawnsY <- c()
-DrowdawnsSP500 <- c()
-Drowdawnsbonds <- c()
-Drowdawnbrzeg <- matrix(ncol = 8,nrow = 24)
+DrawdownsX <- c()
+DrawdownsY <- c()
+DrawdownsSP500 <- c()
+Drawdownsbonds <- c()
+Drawdownbrzeg <- matrix(ncol = 8,nrow = 24)
+portfelebrzegowe1 <- matrix(rep(10000, 8), ncol = 8,nrow=25, dimnames = list(NULL,colnames(return_all)))
 for(j in 1:8){
-for(i in 1:24){
-  Drowdawnbrzeg[i,j]<- max(portfeleBrzegowe[i,j]-portfeleBrzegowe[(i+1):25,j])
+  for(i in 2:25){
+    portfelebrzegowe1[i,j] <- portfelebrzegowe1[(i-1),j]*(1+return_all[(11+i),j])
+} 
+} # policzylismy wartosci portfeli brzegowych
+for(j in 1:8){
+  for(i in 1:24){
+    Drawdownbrzeg[i,j]<- max(portfelebrzegowe1[i,j]-portfelebrzegowe1[(i+1):25,j])
+  }
 }
-} # te petle nie dzialaja bo portfeleBrzegowe[(i+1):25,j] nie czyta jak wektor dlaczego?
 for(i in 1:24){
-  DrowdawnsX[i] <- max(portfelX[i]-portfelX[(i+1):25])
-  DrowdawnsY[i] <- max(portfelY[i]-portfelY[(i+1):25])
-  DrowdawnsSP500[i] <- max(portfelSP500[i]-portfelSP500[(i+1):25])
-  Drowdawnsbonds[i] <- max(portfelbonds[i]-portfelbonds[(i+1):25])
-  } # liczymy Drowdawn dla PortfelaX,Y, S&P500 i obligacji
-Drowdawn <- apply(matrix(c(DrowdawnsX,DrowdawnsY,DrowdawnsSP500,Drowdawnsbonds),ncol=4),2,max)
-
+  DrawdownsX[i] <- max(portfelX[i]-portfelX[(i+1):25])
+  DrawdownsY[i] <- max(portfelY[i]-portfelY[(i+1):25])
+  DrawdownsSP500[i] <- max(portfelSP500[i]-portfelSP500[(i+1):25])
+  Drawdownsbonds[i] <- max(portfelbonds[i]-portfelbonds[(i+1):25])
+  } # liczymy Drawdown dla PortfelaX,Y, S&P500 i obligacji
+Drawdown <- matrix(ncol=12,nrow = 2)
+Drawdown[2,] <- apply(matrix(c(DrawdownsX,DrawdownsY,DrawdownsSP500,Drawdownsbonds,Drawdownbrzeg),ncol=12),2,max)
+Drawdown[1,] <- c("DrawdownsX","DrawdownsY","DrawdownsSP500","Drawdownsbonds",colnames(return_all))
+xtable(Drawdown)
 # wykres zysk?w portfela X i Y, S&P500 i obligacji
 plot(dane_all[dates[13:37],1],portfelX,type="l",col=1,xlab = "czas",ylab = "wartosc portfela")
 lines(dane_all[dates[13:37],1],portfelY,col=2)
@@ -229,7 +245,7 @@ xtable(as.data.frame(100*cor(return_all)), type = "latex")
 # dlugosc opisu?
 # xtable tabela w latexie
 # wstep, opis sp?lek, macierz korelacji, jak dziala nasza strategia, por?wnanie portfeli, wag
-# drowdawn, krzywa efektywnosci, legendy, analiza CAPM, podsumowanie, analiza ryzyka, linie (SML, CML)?
+# drawdown, krzywa efektywnosci, legendy, analiza CAPM, podsumowanie, analiza ryzyka, linie (SML, CML)?
 # tabelki z wagami, zwrotami, ryzyko itp. Dlaczego ostatnia stopa zwrotu jest z 31 grudnia? Wytlumaczyc stopy zwrotu
 # dobranie calego portfela z akcji moze byc trudne (duze koszty transakcji), ale mozemy "kupic" kontrakt
 # sharpe ratio z wsp?lczynnikiem wolnym od ryzyka.Beta w regresji liniowej. Duze zmiany bety- model jest niestabilny.
