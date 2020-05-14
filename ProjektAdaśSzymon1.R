@@ -195,7 +195,7 @@ legend(dane_all[dates[22],1],-0.08,legend=c("CAPM", "faktyczna stopa ","zwrotu z
 # Krzywa SML
 bet <- c(0:18)*0.1
 Rm <- stopyzwrotu[1,4] + bet*(eststzwrotugielda[1]-stopyzwrotu[1,4])
-plot(bet,Rm, type = "l",xlim= c(0,2.2),ylim= c(0,0.08),xlab = "beta", ylab = "stopa zwrotu")
+plot(bet,Rm, type = "l",xlim= c(0,2.2),ylim= c(0,0.08),xlab = "beta", ylab = "oczekiwana stopa zwrotu")
 points(beta_all[1,1],mean(rowSums(return_all[1:12,]*wagi_all[1,])),col= rainbow(10)[1],pch=20)
 points(beta_all[1,2],mean(rowSums(return_all[1:12,]*(1/8))),col= rainbow(10)[2],pch=20)
 punktpB <- c()
