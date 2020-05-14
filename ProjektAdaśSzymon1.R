@@ -1,37 +1,40 @@
 library(tseries) #biblioteka potrzebna do uzycia funkcji portfolio.optim (wagi w portfelu markowitza)
 library(xtable) #biblioteka potrzebna do uzycia funkcji xtable (generowanie tabel do latexa)
 library(quantmod) #biblioteka potrzebna do uzycia funkcji rollapply
+
+
+
 #zadanie 1
 dane_all <- read.csv2(file="data.csv") #wczytanie danych z pliku
 dane_all[,1] <- as.Date(dane_all[,1],"%d.%m.%Y") #zmiana formatu pierwszej kolumny jako daty
 dane_all[,-1] = lapply(dane_all[,-1], function(x) as.numeric(as.character(x))) #zmiana formatu pozostalych kolumn jako liczb
-datess = as.Date(c("2017-01-01","2017-02-01","2017-03-01","2017-04-01","2017-05-01","2017-06-01","2017-07-01","2017-08-01","2017-09-01","2017-10-01","2017-11-01","2017-12-01",
+dates = as.Date(c("2017-01-01","2017-02-01","2017-03-01","2017-04-01","2017-05-01","2017-06-01","2017-07-01","2017-08-01","2017-09-01","2017-10-01","2017-11-01","2017-12-01",
                   "2018-01-01","2018-02-01","2018-03-01","2018-04-01","2018-05-01","2018-06-01","2018-07-01","2018-08-01","2018-09-01","2018-10-01","2018-11-01","2018-12-01",
                   "2019-01-01","2019-02-01","2019-03-01","2019-04-01","2019-05-01","2019-06-01","2019-07-01","2019-08-01","2019-09-01","2019-10-01","2019-11-01","2019-12-01","2020-01-01"))
-dates = c(sapply(datess[-length(datess)], function(x) sum(dane_all[,1] < x) + 1),754)
-#numery wierszy z pierwszym dniem kazdego miesiaca z wyjatkiem ostatniej obesrwacji gdzie numer wiersza jest z ostatniego dnia grudnia, poniewaz nie mamy cene zamkniecia ze stycznia 2020
+dates = c(sapply(dates[-length(dates)], function(x) sum(dane_all[,1] < x) + 1),754)
+#numery wierszy z pierwszym dniem kazdego miesiaca z wyjatkiem ostatniej obesrwacji gdzie numer wiersza jest z ostatniego dnia grudnia, poniewaz nie mamy ceny zamkniecia ze stycznia 2020
 
-return_all = dane_all[dates[-1],-1]/dane_all[dates[-length(dates)],-1] -1 #miesieczne proste stopy zwrotu dla poszczegolnch firm
+return_all = as.data.frame(dane_all[dates[-1],-1]/dane_all[dates[-length(dates)],-1] -1, row.names = as.character(dane_all[dates[-1],1]))
+#miesieczne proste stopy zwrotu dla poszczegolnch spolek
 mu_all = apply(return_all,2,mean) #srednie miesieczne stopy zwrotu
 cov_all = cov(return_all) #macierz kowariancji z calego okresu dla miesiecznych stop zwrotu
 
-mu_yearly = (dane_all[754,2:9]/dane_all[1,2:9])^(365/as.numeric(dane_all[754,1]-dane_all[1,1]))-1 #tworzymy tabele do latexa
-xtable(as.data.frame(100*rbind(t(mu_all),mu_yearly),row.names = c("miesięczne", "roczne")), type = "latex")
-xtable(as.data.frame(100*cov_all), type = "latex")
-xtable(as.data.frame(100*cor(return_all)), type = "latex")
+mu_yearly = (dane_all[754,2:9]/dane_all[1,2:9])^(365/as.numeric(dane_all[754,1]-dane_all[1,1]))-1 #roczna stopa z inwestycji w kazda ze spolek liczona tak jak dla obligacji, a nie jako sredni zwrot
+xtable(as.data.frame(100*rbind(t(mu_all),mu_yearly),row.names = c("miesięczne", "roczne")), type = "latex") #srednie stopy zwrotu
+xtable(as.data.frame(100*cov_all), type = "latex") #macierz kowariancji
+xtable(as.data.frame(100*cor(return_all)), type = "latex") #macierz korelacji
 
 
 
 #zadanie 2
-return = sapply(1:(dim(return_all)[1]-11), function(x) mean(apply(return_all[x:(x+11),],2,mean)))
-#wektor srednich miesiecznych stop zwrotu z jednego roku wstecz dla wszystkich spolek
+return = sapply(1:(dim(return_all)[1]-11), function(x) mean(apply(return_all[x:(x+11),],2,mean))) #wektor srednich miesiecznych stop zwrotu z jednego roku wstecz dla wszystkich spolek
 wagi_all <- matrix(0,ncol=8,nrow=25,dimnames = list(as.character(dane_all[dates[13:37],1]),colnames(return_all)))
-for(i in 1:length(return)){
+for(i in 1:length(return)){ #wyliczamy wagi dla portfelu markowitza
   wagi_all[i,] <- portfolio.optim(as.matrix(return_all[i:(i+11),]),return[i],shorts = TRUE)$pw
-} #wyliczamy wagi
+}
 
 #rownowaznie wagi mozna policzyc bez portfolio.optim w ten sposob
-markowitz <- function(return, return_mABC){ #funkcja wyliczajaca wagi dla zadanej macierzy stop zwrotu return
+markowitz <- function(return, return_mABC){ #funkcja wyliczajaca wagi dla zadanej macierzy stop zwrotu return, w zaleznosci od return_mABC zwroci albo wagi albo m,A,B,C
   m = mean(rowMeans(return))
   ones = matrix(rep(1,dim(return)[2]))
   mu = colMeans(return)
@@ -51,57 +54,61 @@ markowitz <- function(return, return_mABC){ #funkcja wyliczajaca wagi dla zadane
 }
 
 #a nastepnie tworzymy macierz wag dla naszych danych
-weights = matrix(t(sapply(1:(dim(return_all)[1]-11), function(x) markowitz(return_all[x:(x+11),],FALSE))), ncol = 8, dimnames = list(as.character(dane_all[dates[13:37],1]),colnames(return_all))) 
+wagi_all = matrix(t(sapply(1:(dim(return_all)[1]-11), function(x) markowitz(return_all[x:(x+11),],FALSE))), ncol = 8, dimnames = list(as.character(dane_all[dates[13:37],1]),colnames(return_all))) 
 
+xtable(as.data.frame(t(wagi_all[1,]),row.names = c("waga")), type = "latex") #tabela wag z pierwszego okresu
+xtable(as.data.frame(t(apply(wagi_all,2,mean)), row.names = c("waga")), type = "latex") #tabela srednich wartosci wag
+xtable(as.data.frame(t(apply(abs(wagi_all[-1,]-wagi_all[-dim(wagi_all)[1],]),2,mean)), row.names = c("zmiana wag")), type = "latex") #tabela srednich zmian wag
 
-portfelX <- 10000 #wyliczamy zysk z inwestycji z naszego portfela
-for(i in 1:(length(dates)-13)){
+portfelX <- 10000 #wyliczamy wartosc naszego portfela w czasie
+for(i in 1:(dim(wagi_all)[1]-1)){
   portfelX[i+1]<- portfelX[i]*sum(wagi_all[i,]*(1+return_all[12+i,]))
 }
 
 
 
-#Zad3
-portfelY = 10000 #wartosc portfelaY
-portfeleBrzegowe = matrix(rep(10000, 8), ncol = 8, dimnames = list(1,colnames(return_all)))
-#wartosci portfeli brzegowych czyli inwestycji tylko w jedna spolke
+#zadanie 3
+portfelY = 10000 #wartosc portfelaY (portfel 1/8)
+portfeleBrzegowe = matrix(rep(10000, 8), ncol = 8, dimnames = list(1,colnames(return_all))) #wartosci portfeli brzegowych czyli inwestycji tylko w jedna spolke
 
-for(i in 1:(length(dates)-13)){
+for(i in 1:(length(dates)-13)){ #wyliczamy wartosc portfela 1/8 oraz portfeli brzegowych
   portfelY[i+1]<- portfelY[i]* rep(1/8, 8) %*% t(1 + return_all[12 + i,])
   portfeleBrzegowe = rbind(portfeleBrzegowe, portfeleBrzegowe[dim(portfeleBrzegowe)[1],]*(1+return_all[12+i,]),make.row.names=FALSE)
-} #wyliczamy zysk portfela 1/8 oraz portfele brzegowe
+}
+rownames(portfeleBrzegowe) = as.character(dane_all[dates[13:37],1]) #zmiana nazw wierszy na daty
 
 plot(dane_all[dates[13:37],1],portfelX, type='l', col=rainbow(10)[1], ylim = c(7000,20000), xlim = c(dane_all[dates[13],1],dane_all[dim(dane_all)[1],1] + 320), xlab = 'czas', ylab = 'wartosc portfela', cex.lab = 1.5, lwd=3)
-lines(dane_all[dates[13:37],1],portfelY, col=rainbow(10)[2], lwd=3)
-for(i in 1:dim(portfeleBrzegowe)[2]){
+#stworzenie wykresu i naniesienie portfelX
+lines(dane_all[dates[13:37],1],portfelY, col=rainbow(10)[2], lwd=3) #dodanie portfelY
+for(i in 1:dim(portfeleBrzegowe)[2]){ #dodanie portfeli brzegowych do wykresu
   lines(dane_all[dates[13:37],1],portfeleBrzegowe[,i], col=rainbow(10)[2+i])
 }
 legend(dane_all[dim(dane_all)[1],1]-50,22000,legend=c("porfelX", "porfelY",colnames(dane_all)[2:9]),col=rainbow(10), lwd = c(3,3,rep(1,8)), lty=1, y.intersp = 0.3, x.intersp = 0.3, cex = 2, bty = 'n')
 
-portfel_ret_all = matrix(c(portfelX[-1]/portfelX[-length(portfelY)]-1,portfelY[-1]/portfelY[-length(portfelY)]-1),ncol=2,dimnames=list(NULL,c("portfelX","portfelY")))
-portfeleBrzegowe_ret_all = portfeleBrzegowe[-1,]/portfeleBrzegowe[-dim(portfeleBrzegowe)[1],]-1 #obliczamy stopy zwrotu z portfela X i Y oraz portfeli brzegowych
+portfel_ret_all = matrix(c(portfelX[-1]/portfelX[-length(portfelY)]-1,portfelY[-1]/portfelY[-length(portfelY)]-1),ncol=2,dimnames=list(as.character(dane_all[dates[14:37],1]),c("portfelX","portfelY")))
+portfeleBrzegowe_ret_all = portfeleBrzegowe[-1,]/portfeleBrzegowe[-dim(portfeleBrzegowe)[1],]-1 #obliczamy stopy zwrotu z portfela X, Y oraz portfeli brzegowych
 portfel_mu_all = apply(portfel_ret_all,2,mean)
 portfeleBrzegowe_mu_all = apply(portfeleBrzegowe_ret_all,2,mean) #srednie stopy zwrotu z portfeli
 portfel_var_all = apply(portfel_ret_all,2,var)
 portfeleBrzegowe_var_all = apply(portfeleBrzegowe_ret_all,2,var) #wariancje ze stop zwrotu z portfeli
 
+#wykres wariancji vs sredni zwrot dla wszystkich portfeli
 plot(c(portfel_var_all,portfeleBrzegowe_var_all), c(portfel_mu_all, portfeleBrzegowe_mu_all), xlim=c(0.001,0.021), pch=19, col = rainbow(10), xlab = 'wariancja', ylab = 'sredni zwrot', cex.lab = 1.5, lwd=c(14,14,rep(8,8)))
 legend(0.017, 0.028, legend=c("porfelX", "porfelY", colnames(dane_all)[2:9]), col=rainbow(10), pt.lwd = c(6,6,rep(0.8,8)), pch=19, y.intersp = 0.2, x.intersp = 0.3, cex = 2, bty = 'n')
 
-xtable(as.data.frame(t(weights[1,]),row.names = c("waga")), type = "latex")
+returns = as.matrix(return_all[1:12,]) %*% matrix(c(wagi_all[1,],rep(1/8,8),diag(8)), dimnames = list(NULL,c("portfelX", "portfelY", colnames(return_all))) ,ncol=10)
+#zwrot z portfeli w 2017
+param = markowitz(return_all[1:12,],TRUE) #m A B C tak jak w portfelu markowitza (funkcja markowitz) wyliczony dla pierwszego roku
+Mean = seq(0,1.5*max(colMeans(return_all[1:12,])),by=1.5*max(colMeans(return_all[1:12,]))/256) #rowno rozlozone punkty
+Dev = (param[4]*Mean^2-2*param[2]*Mean+param[3])/(param[3]*param[4]-param[2]^2) #wariancja do krzywej efektywnosci z Mean
 
-returns = as.matrix(return_all[1:12,]) %*% matrix(c(weights[1,],rep(1/8,8),diag(8)), dimnames = list(NULL,c("portfelX", "portfelY", colnames(return_all))) ,ncol=10)
-param = markowitz(return_all[1:12,],TRUE)
-Mean = seq(0,1.5*max(colMeans(return_all[1:12,])),by=1.5*max(colMeans(return_all[1:12,]))/256)
-Dev = (param[4]*Mean^2-2*param[2]*Mean+param[3])/(param[3]*param[4]-param[2]^2)
-
-plot(Dev,Mean, type="l", xlab = 'wariancja', ylab = 'sredni zwrot', xlim = c(0.0004, 0.006), lwd = 4)
-points(apply(returns,2,var), apply(returns,2,mean), pch=19, col = rainbow(10), lwd = c(14,14,rep(8,8)))
+plot(Dev,Mean, type="l", xlab = 'wariancja', ylab = 'sredni zwrot', xlim = c(0.0004, 0.006), lwd = 4) #rysuje krzywa efektywnosci
+points(apply(returns,2,var), apply(returns,2,mean), pch=19, col = rainbow(10), lwd = c(14,14,rep(8,8))) #nanosi wszystkie portfele
 legend(0.0037, 0.06, legend=c("krzywa efektywnosci","porfelX", "porfelY",colnames(dane_all)[2:9]), col=c(1,rainbow(10)), lwd = 4, seg.len = 0.5, pt.lwd = c(0,6,6,rep(0.8,8)), lty = c(1,rep(NA,10)), pch=c(NA,rep(19,10)), y.intersp = 0.2, x.intersp = 0.3, cex = 2, bty = 'n')
 
 
 
-#zad4
+#zadanie 4
 USbond <- read.csv2(file="USbond.csv",sep = ";")
 USbond <- USbond[,1:2]
 USbond[,1] <- as.Date(USbond[,1],"%d.%m.%Y")
@@ -135,7 +142,7 @@ sharpe[2,] <- c(sharpe_all,Sharpe_brzeg)
 sharpe[1,] <- c(colnames(sharpe_all),colnames(Sharpe_brzeg))
 xtable(sharpe)
 
-#CAPM, zle, liczone stopy zwrotu z portfela na podstawie praktycznych st�p zwrotu z rynku
+#CAPM, zle, liczone stopy zwrotu z portfela na podstawie praktycznych st?p zwrotu z rynku
 beta_allX <- c()
 beta_allY <- c()
 alfa_allX <- c()
