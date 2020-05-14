@@ -1,6 +1,6 @@
 library(tseries) #biblioteka potrzebna do uzycia funkcji portfolio.optim (wagi w portfelu markowitza)
 library(xtable) #biblioteka potrzebna do uzycia funkcji xtable (generowanie tabel do latexa)
-
+library(quantmod) #biblioteka potrzebna do uzycia funkcji rollapply
 #zadanie 1
 dane_all <- read.csv2(file="data.csv") #wczytanie danych z pliku
 dane_all[,1] <- as.Date(dane_all[,1],"%d.%m.%Y") #zmiana formatu pierwszej kolumny jako daty
@@ -135,6 +135,7 @@ sharpe[2,] <- c(sharpe_all,Sharpe_brzeg)
 sharpe[1,] <- c(colnames(sharpe_all),colnames(Sharpe_brzeg))
 xtable(sharpe)
 
+#CAPM, zle, liczone stopy zwrotu z portfela na podstawie praktycznych stóp zwrotu z rynku
 beta_allX <- c()
 beta_allY <- c()
 alfa_allX <- c()
@@ -156,7 +157,37 @@ lines(stopyzwrotu[,1], col="blue")
 plot(result_CAPM[,2],type = "l")
 lines(stopyzwrotu[,2], col="blue")
 
-#Wykres zysku portfela X,Y i por?wnanie z portfelami brzegowymi
+#CAPM2
+beta_allX <- c()
+beta_allY <- c()
+alfa_allX <- c()
+alfa_allY <- c()
+eststzwrotugielda <- mean()
+for(i in 1:24){
+  CAPM <- lm((rowSums(return_all[i:(11+i),]*wagi_all[i,])-stopa_all[i:(11+i)])~(gielda_all[i:(11+i)]-stopa_all[i:(11+i)]))
+  CAPM2 <- lm((rowSums(return_all[i:(11+i),]*(1/8))-stopa_all[i:(11+i)])~(gielda_all[i:(11+i)]-stopa_all[i:(11+i)]))
+  alfa_allX[i] <- CAPM$coefficients[1]
+  beta_allX[i] <- CAPM$coefficients[2]
+  alfa_allY[i] <- CAPM2$coefficients[1]
+  beta_allY[i] <- CAPM2$coefficients[2]
+} # dla modelu CAPM liczymy bety i alfy
+alfa_all <- matrix(c(alfa_allX,alfa_allY),ncol=2,dimnames = list(NULL,c("alfa_allX","alfa_allY")))
+beta_all <- matrix(c(beta_allX,beta_allY),ncol=2,dimnames = list(NULL,c("beta_allX","beta_allY")))
+result_CAPM <- matrix(ncol=2,nrow = 24)
+eststzwrotugielda <- rollapply(gielda_all[-length(gielda_all)],12,by=1,mean)
+rollapply(c(1:100),10,by=1,mean)
+result_CAPM <- alfa_all + beta_all*(eststzwrotugielda-stopyzwrotu[,4])  # przewidywany wynik wedlug modelu CAPM
+plot(dane_all[dates[13:36],1],result_CAPM[,1],ylim=c(-0.15,0.15),type = "l",xlab = "czas", ylab = "stopa zwrotu")
+lines(dane_all[dates[13:36],1],stopyzwrotu[,1], col="blue")
+legend(dane_all[dates[22],1],-0.08,legend=c("CAPM", "faktyczna stopa ","zwrotu z portfelaX"),
+       col=c(1,"blue","white"),pt.lwd = 10, y.intersp = 0.2, x.intersp = 0.3, lty=1, cex=2, bty = 'n')
+plot(dane_all[dates[13:36],1],result_CAPM[,2],ylim=c(-0.15,0.15),type = "l",xlab = "czas", ylab = "stopa zwrotu")
+lines(dane_all[dates[13:36],1],stopyzwrotu[,2], col="blue")
+legend(dane_all[dates[22],1],-0.08,legend=c("CAPM", "faktyczna stopa ","zwrotu z portfelaY"),
+       col=c(1,"blue","white"),pt.lwd = 10,y.intersp = 0.2, x.intersp = 0.3, lty=1, cex=2, bty = 'n')
+
+
+#Wykres zysku portfela X,Y i porownanie z portfelami brzegowymi
 plot(dane_all[dates[13:37],1],portfelX, type='l', col=1,ylim = c(7700,20000), xlab = 'czas', ylab = 'wartosc portfela', lwd=2)
 lines(dane_all[dates[13:37],1],portfelY, col=2, lwd=2)
 portfeleBrzegowe = matrix(rep(10000, 8), ncol = 8, dimnames = list(1,colnames(return_all)))
@@ -204,14 +235,14 @@ Drawdown <- matrix(ncol=12,nrow = 2)
 Drawdown[2,] <- apply(matrix(c(DrawdownsX,DrawdownsY,DrawdownsSP500,Drawdownsbonds,Drawdownbrzeg),ncol=12),2,max)
 Drawdown[1,] <- c("DrawdownsX","DrawdownsY","DrawdownsSP500","Drawdownsbonds",colnames(return_all))
 xtable(Drawdown)
-# wykres zysk?w portfela X i Y, S&P500 i obligacji
+# wykres zyskow portfela X i Y, S&P500 i obligacji
 plot(dane_all[dates[13:37],1],portfelX,type="l",col=1,xlab = "czas",ylab = "wartosc portfela")
 lines(dane_all[dates[13:37],1],portfelY,col=2)
 lines(dane_all[dates[13:37],1],portfelSP500,col=3)
 lines(dane_all[dates[13:37],1],portfelbonds,col=4)
 legend(dane_all[dates[12]+1,1],15940,legend=c("porfelX", "porfelY","portfelSP500","portfelbonds"),
        col=c(1,2,3,4), lty=1, cex=0.7)
-# tabelka do letexa
+# tabelka do latexa
 mu_yearly = (dane_all[754,2:9]/dane_all[1,2:9])^(365/as.numeric(dane_all[754,1]-dane_all[1,1]))-1 #tworzymy tabele do latexa
 xtable(as.data.frame(100*rbind(t(mu_all),mu_yearly),row.names = c("miesieczne", "roczne")), type = "latex")
 xtable(as.data.frame(100*cov_all), type = "latex")
