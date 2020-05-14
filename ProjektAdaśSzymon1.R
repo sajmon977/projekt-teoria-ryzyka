@@ -8,10 +8,10 @@ library(quantmod) #biblioteka potrzebna do uzycia funkcji rollapply
 dane_all <- read.csv2(file="data.csv") #wczytanie danych z pliku
 dane_all[,1] <- as.Date(dane_all[,1],"%d.%m.%Y") #zmiana formatu pierwszej kolumny jako daty
 dane_all[,-1] = lapply(dane_all[,-1], function(x) as.numeric(as.character(x))) #zmiana formatu pozostalych kolumn jako liczb
-dates = as.Date(c("2017-01-01","2017-02-01","2017-03-01","2017-04-01","2017-05-01","2017-06-01","2017-07-01","2017-08-01","2017-09-01","2017-10-01","2017-11-01","2017-12-01",
+datess = as.Date(c("2017-01-01","2017-02-01","2017-03-01","2017-04-01","2017-05-01","2017-06-01","2017-07-01","2017-08-01","2017-09-01","2017-10-01","2017-11-01","2017-12-01",
                   "2018-01-01","2018-02-01","2018-03-01","2018-04-01","2018-05-01","2018-06-01","2018-07-01","2018-08-01","2018-09-01","2018-10-01","2018-11-01","2018-12-01",
                   "2019-01-01","2019-02-01","2019-03-01","2019-04-01","2019-05-01","2019-06-01","2019-07-01","2019-08-01","2019-09-01","2019-10-01","2019-11-01","2019-12-01","2020-01-01"))
-dates = c(sapply(dates[-length(dates)], function(x) sum(dane_all[,1] < x) + 1),754)
+dates = c(sapply(datess[-length(datess)], function(x) sum(dane_all[,1] < x) + 1),754)
 #numery wierszy z pierwszym dniem kazdego miesiaca z wyjatkiem ostatniej obesrwacji gdzie numer wiersza jest z ostatniego dnia grudnia, poniewaz nie mamy ceny zamkniecia ze stycznia 2020
 
 return_all = as.data.frame(dane_all[dates[-1],-1]/dane_all[dates[-length(dates)],-1] -1, row.names = as.character(dane_all[dates[-1],1]))
@@ -169,7 +169,7 @@ beta_allX <- c()
 beta_allY <- c()
 alfa_allX <- c()
 alfa_allY <- c()
-eststzwrotugielda <- mean()
+
 for(i in 1:24){
   CAPM <- lm((rowSums(return_all[i:(11+i),]*wagi_all[i,])-stopa_all[i:(11+i)])~(gielda_all[i:(11+i)]-stopa_all[i:(11+i)]))
   CAPM2 <- lm((rowSums(return_all[i:(11+i),]*(1/8))-stopa_all[i:(11+i)])~(gielda_all[i:(11+i)]-stopa_all[i:(11+i)]))
@@ -203,7 +203,7 @@ for(i in 1:8){
   punktpB <- lm((return_all[1:12,i]-stopa_all[1:12])~(gielda_all[1:12]-stopa_all[1:12]))  
   points(punktpB$coefficients[2],mean(return_all[1:12,i]),col=rainbow(10)[(i+2)],pch=20)
 }
-legend(1.77,0.045,lty =1,y.intersp = 0.8, legend = c("portfelX","portfelY",colnames(return_all)),col=rainbow(10),bty='n',pch=20)
+legend(1.77,0.045,lty = c(1,rep(NA,10)), y.intersp = 0.8, legend = c("SML","portfelX","portfelY",colnames(return_all)),col=c(1,rainbow(10)),bty='n',pch=c(NA,rep(20,10)))
 
 
 
@@ -268,15 +268,6 @@ xtable(as.data.frame(100*rbind(t(mu_all),mu_yearly),row.names = c("miesieczne", 
 xtable(as.data.frame(100*cov_all), type = "latex")
 xtable(as.data.frame(100*cor(return_all)), type = "latex")
 
-
-
- a
-
-
-
-
-
-#z
 
 
 
