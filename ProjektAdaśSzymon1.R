@@ -126,6 +126,14 @@ spdsz <- sp[-1,2]/sp[-dim(sp)[1],2] -1 # policzenie dziennych stóp zwrotu z S&P5
 gielda_all <- sp[dates[-1],2]/sp[dates[-length(dates)],2] -1  #miesieczne stopy zwrotu z indeksu S&P 500
 stopyzwrotu <- matrix(c(portfel_ret_all,gielda_all[13:length(gielda_all)],stopa_all[13:(length(stopa_all)-1)]),ncol=4,dimnames = list(NULL,c("portfelX","portfelY","gielda_all","stopa_all")))
 #dostajemy macierz z miesiecznymi stopami zwrotu z porfela x,Y,S&P500 i inwestujac w obligacje dzisiecioletnie w USA, tutaj bierzemy poczatek kazdej miesiecznej inwestycji
+
+plot(dane_all[dates[13:37],1],portfelX,type="l",col=1,xlab = "czas",ylab = "wartosc portfela") # wykres zyskow portfela X 
+lines(dane_all[dates[13:37],1],portfelY,col=2) # dorysowanie zyskow portfela Y
+lines(dane_all[dates[13:37],1],portfelSP500,col=3)# dorysowanie zyskow portfela  S&P500 
+lines(dane_all[dates[13:37],1],portfelbonds,col=4)# dorysowanie zyskow portfela obligacji
+legend(dane_all[dates[12]+1,1],15940,legend=c("porfelX", "porfelY","portfelSP500","portfelbonds"),
+       col=c(1,2,3,4), lty=1, cex=0.7) # dodanie legendy
+
 odchs <-sd(gielda_all[13:36]) #policzylismy odchylenia z miesiecznych rynkowych stop zwrotu dla okresu, w ktorych inwestujemy.
 sharpe_all <- matrix(ncol=3,nrow = 1,dimnames = list(NULL,c("portfelX","portfelY","S&P500"))) # pusta macierz do której bedziemy wpisywali wartosci sharpe ratio z naszych portfeli
 Sharpe_brzeg <- matrix(ncol=8,nrow = 1,dimnames = list(NULL,colnames(portfeleBrzegowe_ret_all)))  # pusta macierz do której bedziemy wpisywali wartosci sharpe ratio z naszych portfeli brzegowych
@@ -234,9 +242,3 @@ Drawdown[2,] <- apply(matrix(c(DrawdownsX,DrawdownsY,DrawdownsSP500,Drawdownsbon
 Drawdown[1,] <- c("DrawdownsX","DrawdownsY","DrawdownsSP500","Drawdownsbonds",colnames(return_all)) # uzupelnienie nazw do powyzszej macierzy
 xtable(Drawdown) # tabela do latexa
 
-plot(dane_all[dates[13:37],1],portfelX,type="l",col=1,xlab = "czas",ylab = "wartosc portfela") # wykres zyskow portfela X 
-lines(dane_all[dates[13:37],1],portfelY,col=2) # dorysowanie zyskow portfela Y
-lines(dane_all[dates[13:37],1],portfelSP500,col=3)# dorysowanie zyskow portfela  S&P500 
-lines(dane_all[dates[13:37],1],portfelbonds,col=4)# dorysowanie zyskow portfela obligacji
-legend(dane_all[dates[12]+1,1],15940,legend=c("porfelX", "porfelY","portfelSP500","portfelbonds"),
-       col=c(1,2,3,4), lty=1, cex=0.7) # dodanie legendy
